@@ -4,8 +4,12 @@ Thanks for your interest in contributing!
 
 ## Quality Code Style
 
-All contributions should pass:
+This project uses [```shellcheck```](https://github.com/koalaman/shellcheck) for static analysis of shell scripts. Pull requests that do not pass ```shellcheck``` will require remediation before approval.
+Shell script contributors using vscode are encouraged to install the vscode extension https://marketplace.visualstudio.com/items?itemName=timonwong.shellcheck.
+```shellcheck``` is also available in the Ubuntu package ```shellcheck```
 
+Pull requests involving javascript are tested using https://eslint.org/.
+eslint can be run using:
  1. `npm run lint-check`
  2. `npm run lint:types`
 
