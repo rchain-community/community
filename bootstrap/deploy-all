@@ -34,22 +34,34 @@ git clone https://github.com/rchain/rchain.git || (cd rchain && git pull)
 # Updating our local source should be an option -- look into the wisdom of this
 #git pull https://github.com/rchain-community/liquid-democracy.git
 
-rnode run -s \
-   --validator-private-key "$private_key" \
-   --dev-mode \
-   -XX:MaxDirectMemorySize=100m -XX:MaxRAMPercentage=25 \
-   > "$LOGFILE" 2>&1 &
+rm -f /tmp/deploy-all.fifo
+mkfifo /tmp/deploy-all.fifo
 
+stdbuf -oL -eL rnode run -s \
+	--validator-private-key "$private_key" \
+	--dev-mode \
+	-XX:MaxDirectMemorySize=100m -XX:MaxRAMPercentage=25 \
+	> /tmp/deploy-all.fifo 2>&1 &
 
 PID=$!
 
-# The previous command doesn't produce output -- but this makes up for that
-tail -F "$LOGFILE"|sed -e '/Making a transition to Running state./q' | sed "s/^/$ME: /"
+while true;do
+	if read -r line < /tmp/deploy-all.fifo;then
+		if echo "$line"|grep 'Making a transition to Running state.';then
+			break
+		fi
+		echo "$ME: $line"
+	else
+		sleep 1
+	fi
+done | tee "$LOGFILE"
+
+cat < /tmp/deploy-all.fifo | tee -a "$LOGFILE" &
 
 deployFiles() {
    WAITPID=""
    while read -r t;do
-      $DEPLOY "$t" &
+      $DEPLOY "$t"
       # shellcheck disable=SC2030
       WAITPID="$WAITPID $!"
    done |tee -a log/deployment.log 2>&1
@@ -122,6 +134,6 @@ rnode --grpc-port 40402 propose 2>&1 | tee -a log/deployment.log
 echo "$ME: Waiting for rnode to finalize (10s)" && sleep 10 && echo "$ME: Stopping deployment rnode"
 kill $PID && sleep 2
 
-echo "$ME: Creating rgov snapshot"
+wait $PID && echo "$ME: Creating rgov snapshot"
 ./create-snapshot rgov
-stty echo # for some reason, deploy screws up the terminal, so set it right
+stty echo || exit 0

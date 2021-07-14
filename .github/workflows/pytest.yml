@@ -1,0 +1,81 @@
+name: Run the python tests for rholang actions
+
+on: [ pull_request ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.6.13]
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install PyRchain
+        run: |
+          pip3 install -U grpcio-tools
+          git clone https://github.com/rchain/pyrchain.git
+          cd pyrchain
+          pip3 install -e .[dev]
+        with:
+          python-version: ${{ matrix.python-version }}
+        env:
+          PYTHONPATH: $GITHUB_WORKFLOW
+      - name: update protobufs and generated files
+        run: |
+          cd pyrchain
+          ./update-protobufs
+          ./update-generated || exit 0
+        env:
+          PYTHONPATH: $GITHUB_WORKSPACE
+      - name: Install openjdk11
+        run: |
+          sudo apt install openjdk-11-jre-headless
+      - name: Get rnode
+        run: |
+          wget https://github.com/rchain/rchain/releases/download/v0.10.2/rnode_0.10.2_all.deb
+          sudo dpkg -i rnode_0.10.2_all.deb
+      - name: Bootstrap rnode
+        run: |
+          bootstrap/bootstrap
+      - name: Deploy RGOV
+        run: |
+          bootstrap/deploy-all
+      - name: Run RGOV rnode
+        run: |
+          bootstrap/run-rnode
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip3 install flake8 pytest requests
+          if [ -f requirements.txt ]; then pip3 install -r requirements.txt; fi
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Lint with flake8
+        run: |
+          # stop the build if there are Python syntax errors or undefined names
+          flake8 testing --count --select=E9,F63,F7,F82 --show-source --statistics
+          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+          flake8 testing --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+        env:
+          PYTHONPATH: $GITHUB_WORKSPACE
+      - name: Test with pytest
+        run: |
+          ls -a .
+          ls -da *
+          ls -a *
+          echo $GITHUB_WORKSPACE
+          export PYTHONPATH=~
+          export PYTHONPATH=$PYTHONPATH:$GITHUB_WORKSPACE
+          export PYTHONPATH=$PYTHONPATH:~/.local/lib/python3.6/site-packages
+          export PYTHONPATH=$PYTHONPATH:$GITHUB_WORKSPACE/pyrchain
+          export PYTHONPATH=$PYTHONPATH:/opt/hostedtoolcache/Python/3.6.13/x64/lib/python3.6/site-packages
+          echo $PYTHONPATH
+          ls testing
+          testing/unit_test/test_peekInbox.py
+          cd testing && pytest

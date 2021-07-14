@@ -39,21 +39,36 @@ private_key=$(cat PrivateKeys/pk.bootstrap)
 mkdir -p ~/.rnode || exit 3
 tar cf - genesis|(cd ~/.rnode; tar xvf -) || exit 3
 
-rnode run -s \
+rm -f /tmp/bootstrap.fifo
+mkfifo /tmp/bootstrap.fifo
+
+stdbuf -oL -eL rnode run -s \
 	--validator-private-key "$private_key" \
 	--dev-mode \
 	-XX:MaxDirectMemorySize=100m -XX:MaxRAMPercentage=25 \
-	> "$LOGFILE" 2>&1 &
+	> /tmp/bootstrap.fifo 2>&1 &
 
 PID=$!
 
-# The previous command doesn't produce output -- but this one makes up for that
-tail -f "$LOGFILE"|sed -e '/Making a transition to Running state./q'
+while true;do
+	if read -r line < /tmp/bootstrap.fifo;then
+		if echo "$line"|grep 'Making a transition to Running state.';then
+			break
+		fi
+		echo "$ME: $line"
+	else
+		sleep 1
+	fi
+done | tee "$LOGFILE"
+
+rm -f /tmp/bootstrap.fifo
 
 echo "$ME: Stopping $ME rnode process"
-sleep 3 && kill $PID && sleep 3
+sleep 3 && kill "$PID"
+
+wait "$PID"
 
 echo "$ME: Creating snapshot '$ME'"
 ./create-snapshot "$ME"
 
-stty echo
+stty echo || exit 0
