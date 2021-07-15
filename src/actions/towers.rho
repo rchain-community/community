@@ -1,0 +1,44 @@
+match [3] {
+  [height] => {
+    new result, stdout(`rho:io:stdout`), move, ack, log, list in { // create names/channels needed
+      // towers of hanoi - use EXPLORE
+      // derived from prolog example https://www.cpp.edu/~jrfisher/www/prolog_tutorial/2_3.html
+      // Move a pile of disks of [height] from the "left" peg to the "right" peg
+      // using the "center" peg as an intermetiate place to put them.
+      // Never put a larger disk on a smaller on.
+      // Then write to the ack channel to acknowledge completion
+    move!(height,"left","right","center", *ack) |
+    contract move(@height, @from, @to, @other, ack) = {
+       // create a new ack1 channel to sequence actions within move
+      new ack1 in {
+        match height {
+          1 => { // if the height is 1 move from the @from peg to the @to peg directly
+            log!("Move top disk from " ++ from ++ " to " ++ to, *ack1) |
+            stdout!("Move top disk from " ++ from ++ " to " ++ to) |
+            for (_ <- ack1) {ack!(Nil)}   
+          }
+          _ => { // if the height is not one, uncover a larger disk from the @from onto the @other pile
+            move!(height-1, from, other, to, *ack1) |
+            for ( _ <- ack1 ) { // then move the larger disk to the @to pile
+              move!(1, from, to, other, *ack1) |
+              for ( _ <- ack1 ) { // then move the smaller [other] on top of the @to
+                move!(height-1, other, to, from, *ack1) |
+                for ( _ <- ack1 ) {
+                  ack!(Nil) // when done return an acknowledgement
+                }
+              }
+            }
+          }
+        }
+      }
+    } |
+    list!([]) |
+    contract log(term, ack) = {
+      for ( prior <- list) {
+        list!(*prior ++ [*term]) |
+        ack!(Nil)
+      }
+    } |
+    for (_ <- ack; alist <- list ) {result!(*alist)}
+  }
+}

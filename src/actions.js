@@ -247,4 +247,9 @@ export const actions = {
     },
     filename: 'actions/doit.rho',
   },
+  towers: {
+    fields: { height: { value: '3', type: 'number' } },
+    filename: 'actions/towers.rho',
+  },
+  
 };
