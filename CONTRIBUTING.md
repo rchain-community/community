@@ -4,7 +4,7 @@ Thanks for your interest in contributing!
 
 ## Quality Code Style
 
-All contributions should pass:
+[We](https://docs.google.com/document/d/1UfoBMB_OFm-pkjid0u9d0GddB2bWXjc8u-bo4Es0isU/edit#) suggest all contributions should pass:
 
  1. `npm run lint-check`
  2. `npm run lint:types`
@@ -50,9 +50,62 @@ This localhost environment aims to be a complete usable development system, (onc
 
 Watch video of how to run an rnode localhost and add rgov actions here https://youtu.be/9TIPXXSXwnE bootstraping updates https://youtu.be/fuXFDRXJsVM
 
-[see below](#localhost-deployment-and-development)
+## localhost deployment and development  ([detailed document](https://docs.google.com/document/d/1V5k9tDjztEVDYiXJG1-Hpb0rNtVcV22GrsdXb0pDUx8/edit#heading=h.tzhor7ydmx13))
+To create an rchain node locally, deploy rchain dependencies, and deploy liquid-democracy use the following commands. These commands will:
+  1) Create several log files, which can be largely ignored.
+  2) clone the rchain repo
+  3) deploy the rholang files from rchain and liquid-democracy
+  4) Generate javascript, json, and rholang files containing the URI values for contracts that emit a '#define' line - generated files have a filenames that starts with 'generated'
+  5) Create a 'snapshot' containing the resulting rnode database that can be restored with restore-snapshot
+  6) Place the running rnode log file in 'bootstrap/log/run-rnode.log'
 
-## To deploy the contracts: (out of date)
+```bash
+cd bootstrap
+./bootstrap
+./deploy-all
+./run-rnode
+cd ..
+```
+
+## web interface installation
+```bash
+npm install
+```
+
+## running web interface
+```bash
+npm start
+```
+
+## snapshots
+Restore a snapshot previously created with bootstrap/create-snapshot
+```bash
+cd bootstrap && restore-snapshot
+```
+
+After initial bootstrap and deploy-all, there will be two snapshots available: 'bootstrap' and 'rgov'
+
+List snapshots available for restore
+```bash
+cd bootstrap && list-snapshot
+```
+
+Save a copy of the localhost rnode that can be restored at a later date
+```bash
+cd bootstrap  && create-snapshot
+```
+
+## Command line deployment of rholang
+Deploy the rholang file "test.rho"
+```bash
+cd bootstrap && ./deploy ../test.rho
+```
+Propose the previously deployed rholang file "test.rho"
+```bash
+bootstrap/propose
+```
+
+## To deploy the contractsusing jakefile: (out of date)
 
 ```
 npm install
@@ -154,60 +207,7 @@ Starting 'default'...
 Finished 'default' after 0 ms
 ```
 
-## localhost deployment and development
-To create an rchain node locally, deploy rchain dependencies, and deploy liquid-democracy use the following commands. These commands will:
-  1) Create several log files, which can be largely ignored.
-  2) clone the rchain repo
-  3) deploy the rholang files from rchain and liquid-democracy
-  4) Generate javascript, json, and rholang files containing the URI values for contracts that emit a '#define' line - generated files have a filenames that starts with 'generated'
-  5) Create a 'snapshot' containing the resulting rnode database that can be restored with restore-snapshot
-  6) Place the running rnode log file in 'bootstrap/log/run-rnode.log'
 
-```bash
-cd bootstrap
-./bootstrap
-./deploy-all
-./run-rnode
-cd ..
-```
-
-## web interface installation
-```bash
-npm install
-```
-
-## running web interface
-```bash
-npm start
-```
-
-## snapshots
-Restore a snapshot previously created with bootstrap/create-snapshot
-```bash
-cd bootstrap && restore-snapshot
-```
-
-After initial bootstrap and deploy-all, there will be two snapshots available: 'bootstrap' and 'rgov'
-
-List snapshots available for restore
-```bash
-cd bootstrap && list-snapshot
-```
-
-Save a copy of the localhost rnode that can be restored at a later date
-```bash
-cd bootstrap  && create-snapshot
-```
-
-## Command line deployment of rholang
-Deploy the rholang file "test.rho"
-```bash
-cd bootstrap && ./deploy ../test.rho
-```
-Propose the previously deployed rholang file "test.rho"
-```bash
-bootstrap/propose
-```
 
 ## Misc: dependencies
 We have a dependency on rchain-toolkit. For utils. This can go away soon, right?
